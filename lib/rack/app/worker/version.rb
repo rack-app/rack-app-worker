@@ -1,7 +1,2 @@
-module Rack
-  module App
-    module Worker
-      VERSION = "0.1.0"
-    end
-  end
-end
+require 'rack/app/worker'
+Rack::App::Worker::VERSION = File.read(File.join(File.dirname(__FILE__), '..', '..', '..', '..', 'VERSION')).strip
