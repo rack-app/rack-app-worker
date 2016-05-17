@@ -46,19 +46,7 @@ class Rack::App::Worker::RabbitMQ
   def create_new_session
     session = ::Bunny.new
     session.start
-    session_finalizer!
     return session
-  end
-
-  def session_finalizer!
-    @session_finalizer ||= lambda do
-      this = self
-      Kernel.at_exit do
-        session = this.instance_variable_get(:@session)
-        session && session.respond_to?(:close) && session.close
-      end
-      true
-    end.call
   end
 
   def check_connection
@@ -109,6 +97,21 @@ class Rack::App::Worker::RabbitMQ
 
   def exchange_name(type, name)
     "#{namespace}.#{type}.#{name}"
+  end
+
+  def session_finalizer!
+    @session_finalizer ||= lambda do
+      this = self
+      Kernel.at_exit do
+        begin
+          session = this.instance_variable_get(:@session)
+          session && session.respond_to?(:close) && session.close
+        rescue Timeout::Error
+          nil
+        end
+      end
+      true
+    end.call
   end
 
 end

@@ -5,7 +5,7 @@ class Rack::App::Worker::Consumer
   def initialize(definition)
     @definition = definition
     @instance = @definition[:class].new
-    @consumers = []
+    @subscriptions = []
     @shutdown_requested = false
   end
 
@@ -27,6 +27,7 @@ class Rack::App::Worker::Consumer
   protected
 
   def start_working
+    logger.info "consumer start working for #{@definition[:name]}"
     rabbit = Rack::App::Worker::RabbitMQ.new
     subscribe(rabbit.send_queue(@definition[:name]))
     subscribe(rabbit.create_broadcast_queue(@definition[:name]))
@@ -47,7 +48,8 @@ class Rack::App::Worker::Consumer
   end
 
   def at_shutdown
-    @consumers.each { |c| c.cancel }
+    logger.info 'cancel subscriptions'
+    @subscriptions.each { |c| c.cancel }
     @shutdown_requested = true
   end
 
@@ -61,9 +63,14 @@ class Rack::App::Worker::Consumer
   end
 
   def subscribe(queue)
-    @consumers << queue.subscribe(:manual_ack => true) do |delivery_info, properties, payload|
+    logger.info "creating subscription for #{queue.name}"
+    @subscriptions << queue.subscribe(:manual_ack => true) do |delivery_info, properties, payload|
       handle_message(queue, delivery_info, properties, payload)
     end
+  end
+
+  def logger
+    @logger ||= Rack::App::Worker::Logger.new
   end
 
 end

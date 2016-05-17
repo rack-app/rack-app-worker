@@ -2,7 +2,7 @@ require 'rack/app/worker'
 module Rack::App::Worker::Environment
   extend(self)
 
-  DEFAULT_QUEUE_QOS = 50
+  DEFAULT_QOS = 50
   DEFAULT_WORKER_CLUSTER = 'main'.freeze
   DEFAULT_WORKER_NAMESPACE = 'rack-app-worker'.freeze
   DEFAULT_HEARTBEAT_INTERVAL = 10
@@ -14,7 +14,7 @@ module Rack::App::Worker::Environment
   end
 
   def queue_qos
-    (ENV['worker_queue_qos'] || DEFAULT_QUEUE_QOS).to_i
+    (ENV['WORKER_QOS'] || DEFAULT_QOS).to_i
   end
 
   def namespace
@@ -31,6 +31,33 @@ module Rack::App::Worker::Environment
 
   def max_consumer_number
     (ENV['WORKER_MAX_CONSUMER_NUMBER'] || DEFAULT_MAX_CONSUMER_NUMBER).to_i
+  end
+
+  def log_level
+    case ENV['WORKER_LOG_LEVEL'].to_s.upcase
+
+      when 'DEBUG', '0'
+        0
+
+      when 'INFO', '1'
+        1
+
+      when 'WARN', '2'
+        2
+
+      when 'ERROR', '3'
+        3
+
+      when 'FATAL', '4'
+        4
+
+      when 'UNKNOWN', '5'
+        5
+
+      else
+        3
+
+    end
   end
 
   def stdout

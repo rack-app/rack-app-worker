@@ -2,6 +2,7 @@ require 'rack/app'
 module Rack::App::Worker
 
   require 'rack/app/worker/version'
+  require 'rack/app/worker/logger'
   require 'rack/app/worker/utils'
 
   require 'rack/app/worker/environment'
@@ -17,7 +18,6 @@ module Rack::App::Worker
   require 'rack/app/worker/client_proxy'
 
   require 'rack/app/worker/rabbit_mq'
-
 
   Rack::App::Extension.register :worker do
 

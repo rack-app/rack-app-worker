@@ -14,7 +14,7 @@ class Rack::App::Worker::Daemonizer
 
   def spawn(&block)
 
-    parent_pid = $$
+    parent_pid = current_pid
     spawn_block = proc do
       subscribe_to_signals
       bind(parent_pid)
@@ -41,10 +41,15 @@ class Rack::App::Worker::Daemonizer
     end
   end
 
+  def has_running_process?
+    pids.any? { |pid| Rack::App::Worker::Utils.process_alive?(pid) }
+  end
+
   def process_title(new_title)
     if Process.respond_to?(:setproctitle)
       Process.setproctitle(new_title)
     else
+
       $0 = new_title
     end
   end
@@ -135,7 +140,7 @@ class Rack::App::Worker::Daemonizer
 
   # Attempts to write the pid of the forked process to the pid file.
   def save_current_process_pid
-    File.write(pid_file_path, $$)
+    File.write(pid_file_path, current_pid)
   rescue ::Exception => e
     $stderr.puts "While writing the PID to file, unexpected #{e.class}: #{e}"
     Kernel.exit
@@ -170,6 +175,10 @@ class Rack::App::Worker::Daemonizer
     path = Rack::App::Utils.pwd('pids', 'workers', @daemon_name)
     FileUtils.mkdir_p(path)
     path
+  end
+
+  def current_pid
+    Process.pid rescue $$
   end
 
 end

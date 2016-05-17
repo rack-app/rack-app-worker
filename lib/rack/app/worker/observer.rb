@@ -1,3 +1,4 @@
+require 'logger'
 require 'rack/app/worker'
 class Rack::App::Worker::Observer
 
@@ -7,20 +8,22 @@ class Rack::App::Worker::Observer
   end
 
   def start
+    logger.info(__method__.to_s)
     loop do
       break if shutdown_signal_received
 
+      logger.debug(Rack::App::Worker::Register.worker_definitions.keys.inspect)
       Rack::App::Worker::Register.worker_definitions.values.each do |definition|
 
         queue = rabbitmq.send_queue(definition[:name])
         status = check_status(queue)
 
         if need_more_worker?(status)
-          create_child(definition)
+          create_consumer(definition)
         end
 
         if need_less_worker?(status)
-          signal_shutdown_for_a_child(definition)
+          signal_shutdown_for_a_consumer(definition)
         end
 
       end
@@ -43,11 +46,13 @@ class Rack::App::Worker::Observer
     retry
   end
 
-  def create_child(definition)
+  def create_consumer(definition)
+    logger.info("#{__method__}(#{definition[:name]})")
     Rack::App::Worker::Consumer.new(definition).start
   end
 
-  def signal_shutdown_for_a_child(definition)
+  def signal_shutdown_for_a_consumer(definition)
+    logger.info("#{__method__}(#{definition[:name]})")
     Rack::App::Worker::Consumer.new(definition).stop
   end
 
@@ -61,6 +66,7 @@ class Rack::App::Worker::Observer
 
   def shutdown_signal_received
     if @shutdown_signal_received
+      logger.info(__method__.to_s)
       consumers.each { |c| c.stop_all }
       rabbitmq.session.close
       @ready_for_shutdown = true
@@ -85,6 +91,10 @@ class Rack::App::Worker::Observer
 
   def rabbitmq
     @rabbitmq ||= Rack::App::Worker::RabbitMQ.new
+  end
+
+  def logger
+    @logger ||= Rack::App::Worker::Logger.new
   end
 
 end
