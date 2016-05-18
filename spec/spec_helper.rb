@@ -32,9 +32,20 @@ module WorkerControl
 
   def purge_pid_files
     Dir.glob(Rack::App::Utils.pwd('pids', 'workers', '*')).each do |folder|
-      if Dir.glob(File.join(folder, '*')).empty?
+      get_pids = lambda { Dir.glob(File.join(folder, '*')) }
+
+      get_pids.call.each do |pid_file|
+        begin
+          Process.kill(0, File.read(pid_file).to_i)
+        rescue Errno::ESRCH
+          File.delete(pid_file)
+        end
+      end
+
+      if get_pids.call.empty?
         FileUtils.rm_r(folder)
       end
+
     end
   end
 
@@ -73,6 +84,7 @@ end
 RSpec.configuration.include(WorkerControl)
 
 RSpec.configuration.before(:each) do
+
   rack_app
   start_daemon
   try_wait_for_workers
@@ -95,5 +107,8 @@ end
 
 ENV['WORKER_STDOUT']= Rack::App::Utils.pwd('tmp', 'spec.log')
 ENV['WORKER_STDERR']= Rack::App::Utils.pwd('tmp', 'spec.log')
-ENV['WORKER_LOG_LEVEL']= '0'
+ENV['WORKER_MESSAGE_COUNT_LIMIT']= '1'
+ENV['WORKER_MAX_CONSUMER_NUMBER']= '3'
+ENV['WORKER_HEARTBEAT_INTERVAL']= '1'
+ENV['WORKER_LOG_LEVEL']= 'DEBUG'
 ENV['WORKER_QOS']= '1'

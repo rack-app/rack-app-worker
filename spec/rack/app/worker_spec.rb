@@ -23,8 +23,8 @@ describe Rack::App::Worker do
 
     worker :sleepy do
 
-      def sleep_on_this_request
-        Kernel.sleep
+      def some_heavy_lifting_that_takes_time
+        Kernel.sleep(5)
       end
 
     end
@@ -34,7 +34,7 @@ describe Rack::App::Worker do
     end
 
     get '/sleepy' do
-      workers[:sleepy].send.sleep_on_this_request
+      workers[:sleepy].send.some_heavy_lifting_that_takes_time
     end
 
   end
@@ -74,6 +74,21 @@ describe Rack::App::Worker do
   end
 
   it 'should increase the worker count to match the request load' do
+    purge_pid_files
+
+    expected_worker_count = Rack::App::Worker::Environment.max_consumer_number
+
+    request_count = Rack::App::Worker::Environment.message_count_limit * Rack::App::Worker::Environment.queue_qos * (expected_worker_count + 5)
+    request_count.times { get('/sleepy') }
+
+    sleepy_worker_consumer_pid_folder = worker_pid_folders.select { |fp| File.basename(fp) == 'sleepy' }
+
+    timeout(60) { sleep(1) until Dir.glob(File.join(sleepy_worker_consumer_pid_folder, '*')).length == expected_worker_count }
+
+
+    Dir.glob(File.join(sleepy_worker_consumer_pid_folder, '*')).each do |fp|
+      Process.kill(0, File.read(fp).to_i)
+    end
 
   end
 

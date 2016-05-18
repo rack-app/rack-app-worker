@@ -1,8 +1,13 @@
 require 'logger'
 class Rack::App::Worker::Logger
 
-  def initialize
-    @logger = ::Logger.new($stdout)
+  def self.default_out(new_out=nil)
+    @default_out = new_out unless new_out.nil?
+    @default_out ||= $stdout
+  end
+
+  def initialize(out=self.class.default_out)
+    @logger = ::Logger.new(out)
     @logger.level= Rack::App::Worker::Environment.log_level
   end
 

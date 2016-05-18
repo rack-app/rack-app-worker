@@ -11,7 +11,7 @@ class Rack::App::Worker::Consumer
 
   def start
     daemonizer.spawn do |d|
-      d.process_title("Rack::App::Worker/#{@definition[:name]}/#{d.id}")
+      d.process_title("rack-app-worker/#{@definition[:name]}/#{d.id}")
       start_working
     end
   end
