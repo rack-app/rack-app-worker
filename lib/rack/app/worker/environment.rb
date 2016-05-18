@@ -65,7 +65,7 @@ module Rack::App::Worker::Environment
   end
 
   def stderr
-    (ENV['WORKER_STDOUT'] || Rack::App::Utils.devnull_path).to_s
+    (ENV['WORKER_STDERR'] || Rack::App::Utils.devnull_path).to_s
   end
 
 end
